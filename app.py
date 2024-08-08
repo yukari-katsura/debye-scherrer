@@ -23,7 +23,7 @@ if data_files:
 
 # ラベルファイルのアップロード (optional)
 label_file = st.file_uploader(
-    "Choose a CSV file for labels (optional, requires 'filename' and 'label' columns)",
+    "Choose a CSV file for labels (optional, requires 'filename' column; 'label' and 'order' columns optional)",
     type="csv"
 )
 
@@ -67,10 +67,17 @@ with col9:
 
 # ラベルファイルがアップロードされた場合
 labels = {}
+order = []
 if label_file:
     labels_df = pd.read_csv(label_file)
+    if 'order' in labels_df.columns:
+        labels_df = labels_df.sort_values('order')  # order列でソート
     for index, row in labels_df.iterrows():
-        labels[row['filename']] = row['label']
+        label = row['filename']
+        if 'label' in row:
+            label = row['label']
+        labels[row['filename']] = label
+        order.append(row['filename'])
 
 # プロットを行うボタン
 if st.button("Plot Heatmap"):
@@ -79,7 +86,10 @@ if st.button("Plot Heatmap"):
     x_ticks = None  # x軸の目盛りラベル
 
     if data_files:
-        for data_file in data_files:
+        data_dict = {data_file.name: data_file for data_file in data_files}
+        sorted_data_files = [data_dict[file] for file in order if file in data_dict] if order else data_files
+        
+        for data_file in sorted_data_files:
             # データの読み込み
             file_content = data_file.read().decode('utf-8')
             lines = file_content.splitlines()
@@ -174,4 +184,3 @@ if st.button("Plot Heatmap"):
                 file_name=f"heatmap.{img_format}",
                 mime=f"image/{img_format}"
             )
-
