@@ -59,6 +59,7 @@ with col5:
     format_options = ['png', 'jpeg', 'svg', 'pdf']
     img_format = st.selectbox("Image format", format_options)
 
+# 設定変更部分
 col6, col7, col8, col9, col10 = st.columns(5)
 with col6:
     col_x = st.text_input("Column for x", "")
@@ -66,10 +67,10 @@ with col7:
     col_y = st.text_input("Column for y", "")
 with col8:
     x_step_options = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2]
-    x_step = st.selectbox("Step for x", x_step_options, index=4)
+    x_step = st.selectbox("Step size for x", x_step_options, index=4)
 with col9:
     scale_options = ['linear', 'log']
-    scale = st.selectbox("Color scale", scale_options)
+    scale = st.selectbox("Scale for y", scale_options)
 with col10:
     sort_options = ['None', 'File', 'Similarity']
     sort_method = st.selectbox("Sort method", sort_options)
