@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.interpolate import make_interp_spline
+from scipy.spatial.distance import pdist, squareform
 import io
 import os
 
@@ -21,7 +22,6 @@ data_files = st.file_uploader(
 if data_files:
     st.write(f"Number of uploaded files: {len(data_files)}")
 
-
 # ラベルファイルのアップロード (optional)
 label_file = st.file_uploader(
     "Choose a file for labels (optional, requires 'filename' column; 'label' and 'order' columns optional)",
@@ -32,7 +32,6 @@ label_file = st.file_uploader(
 sheet_name = None
 if label_file and label_file.name.endswith(".xlsx"):
     sheet_name = st.text_input("Enter sheet name (leave blank for default sheet)", "")
-
 
 # カラーマップの選択肢を増やす
 color_options = [
@@ -60,17 +59,20 @@ with col5:
     format_options = ['png', 'jpeg', 'svg', 'pdf']
     img_format = st.selectbox("Image format", format_options)
 
-col6, col7, col8, col9 = st.columns(4)
+col6, col7, col8, col9, col10 = st.columns(5)
 with col6:
-    col_x = st.text_input("Column name for x-axis", "")
+    col_x = st.text_input("Column for x", "")
 with col7:
-    col_y = st.text_input("Column name for y-axis", "")
+    col_y = st.text_input("Column for y", "")
 with col8:
     x_step_options = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2]
-    x_step = st.selectbox("Step size for x-axis", x_step_options, index=4)
+    x_step = st.selectbox("Step for x", x_step_options, index=4)
 with col9:
     scale_options = ['linear', 'log']
-    scale = st.selectbox("Scale for yobs", scale_options)
+    scale = st.selectbox("Color scale", scale_options)
+with col10:
+    sort_options = ['None', 'File', 'Similarity']
+    sort_method = st.selectbox("Sort method", sort_options)
 
 # ラベルファイルがアップロードされた場合
 labels = {}
@@ -101,8 +103,11 @@ if st.button("Plot Heatmap"):
 
     if data_files:
         data_dict = {data_file.name: data_file for data_file in data_files}
-        sorted_data_files = [data_dict[file] for file in order if file in data_dict] if order else data_files
-        
+        if sort_method == 'File' and order:
+            sorted_data_files = [data_dict[file] for file in order if file in data_dict]
+        else:
+            sorted_data_files = list(data_files)
+
         for data_file in sorted_data_files:
             # データの読み込み
             file_content = data_file.read().decode('utf-8')
@@ -166,13 +171,21 @@ if st.button("Plot Heatmap"):
         if heatmap_data.empty:
             st.error("No valid data found in the uploaded files.")
         else:
+            # 類似性に基づくソート
+            if sort_method == 'Similarity':
+                distance_matrix = squareform(pdist(heatmap_data.T, metric='euclidean'))
+                sorted_indices = np.argsort(distance_matrix.sum(axis=1))
+                sorted_heatmap_data = heatmap_data.iloc[:, sorted_indices]
+            else:
+                sorted_heatmap_data = heatmap_data
+
             # cmをinchに変換
             width_inch = float(width_cm) / 2.54
             height_inch = float(height_cm) / 2.54
 
             # ヒートマップの作成
             fig, ax = plt.subplots(figsize=(width_inch, height_inch))
-            sns.heatmap(heatmap_data.T, cmap=cmap, ax=ax)
+            sns.heatmap(sorted_heatmap_data.T, cmap=cmap, ax=ax)
 
             # x軸の目盛りを10刻みの値に設定
             ax.set_xticks(np.linspace(0, len(x_new) - 1, len(x_ticks)))
