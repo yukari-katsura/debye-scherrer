@@ -21,11 +21,18 @@ data_files = st.file_uploader(
 if data_files:
     st.write(f"Number of uploaded files: {len(data_files)}")
 
+
 # ラベルファイルのアップロード (optional)
 label_file = st.file_uploader(
-    "Choose a CSV file for labels (optional, requires 'filename' column; 'label' and 'order' columns optional)",
-    type="csv"
+    "Choose a file for labels (optional, requires 'filename' column; 'label' and 'order' columns optional)",
+    type=["csv", "xlsx"]
 )
+
+# シート名の入力（Excelファイルの場合）
+sheet_name = None
+if label_file and label_file.name.endswith(".xlsx"):
+    sheet_name = st.text_input("Enter sheet name (leave blank for default sheet)", "")
+
 
 # カラーマップの選択肢を増やす
 color_options = [
@@ -69,7 +76,14 @@ with col9:
 labels = {}
 order = []
 if label_file:
-    labels_df = pd.read_csv(label_file)
+    if label_file.name.endswith(".csv"):
+        labels_df = pd.read_csv(label_file)
+    elif label_file.name.endswith(".xlsx"):
+        if sheet_name:
+            labels_df = pd.read_excel(label_file, sheet_name=sheet_name)
+        else:
+            labels_df = pd.read_excel(label_file)
+
     if 'order' in labels_df.columns:
         labels_df = labels_df.sort_values('order')  # order列でソート
     for index, row in labels_df.iterrows():
